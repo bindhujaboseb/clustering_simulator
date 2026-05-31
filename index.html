@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clustering in AI — Interactive Simulator | Sharjah Indian School</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --c1:#FF6B6B; --c2:#4ECDC4; --c3:#FFE66D; --c4:#A29BFE; --c5:#FD79A8;
+  --bg:#0F0E17;
+  --surface:#1A1929;
+  --surface2:#22213A;
+  --border:rgba(255,255,255,0.08);
+  --text:#FFFFFE;
+  --text2:#A7A9BE;
+  --text3:#6B6D8A;
+  --radius:14px;
+  --radius-sm:8px;
+}
+
+html{scroll-behavior:smooth}
+body{
+  font-family:'Nunito',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── ANIMATED BG BLOBS ─────────────────────────────────────── */
+.bg-blobs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.12;animation:blobFloat 12s ease-in-out infinite}
+.blob1{width:500px;height:500px;background:var(--c1);top:-100px;left:-100px;animation-delay:0s}
+.blob2{width:400px;height:400px;background:var(--c2);top:40%;right:-80px;animation-delay:-4s}
+.blob3{width:350px;height:350px;background:var(--c4);bottom:-80px;left:30%;animation-delay:-8s}
+@keyframes blobFloat{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(30px,-20px) scale(1.05)}
+  66%{transform:translate(-20px,15px) scale(.96)}
+}
+
+/* ── PAGE WRAPPER ──────────────────────────────────────────── */
+.page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:24px 16px 60px}
+
+/* ── HEADER ────────────────────────────────────────────────── */
+.site-header{text-align:center;padding:32px 0 28px}
+.school-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text3);background:var(--surface);
+  border:1px solid var(--border);border-radius:30px;
+  padding:5px 14px;margin-bottom:18px;
+}
+.site-header h1{
+  font-size:clamp(28px,6vw,52px);font-weight:900;line-height:1.1;
+  background:linear-gradient(135deg,var(--c1),var(--c3),var(--c2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:10px;
+}
+.site-header .tagline{
+  font-size:15px;color:var(--text2);font-weight:600;
+  max-width:480px;margin:0 auto;line-height:1.6;
+}
+.vision-strip{
+  display:flex;justify-content:center;gap:12px;margin-top:16px;flex-wrap:wrap;
+}
+.vpill{
+  font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.vpill.red{background:rgba(255,107,107,.15);color:#FF6B6B;border:1px solid rgba(255,107,107,.3)}
+.vpill.teal{background:rgba(78,205,196,.15);color:#4ECDC4;border:1px solid rgba(78,205,196,.3)}
+.vpill.yellow{background:rgba(255,230,109,.15);color:#FFE66D;border:1px solid rgba(255,230,109,.3)}
+
+/* ── CONCEPT CARDS ─────────────────────────────────────────── */
+.concepts{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;margin-bottom:24px;
+}
+.concept-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;
+  border-top:3px solid var(--accent-col);
+  transition:transform .15s;
+}
+.concept-card:hover{transform:translateY(-2px)}
+.concept-card .cc-icon{font-size:22px;margin-bottom:8px}
+.concept-card .cc-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.concept-card p{font-size:13px;color:var(--text2);line-height:1.55}
+
+/* ── SCENE TABS ────────────────────────────────────────────── */
+.scene-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.stab{
+  font-family:'Nunito',sans-serif;
+  font-size:13px;font-weight:700;
+  padding:8px 16px;border-radius:30px;
+  border:1.5px solid var(--border);
+  background:var(--surface);color:var(--text2);
+  cursor:pointer;transition:all .18s;
+  display:flex;align-items:center;gap:7px;
+}
+.stab .si{font-size:16px}
+.stab:hover{border-color:rgba(255,255,255,.2);color:var(--text)}
+.stab.on{color:var(--bg);border-color:transparent;font-weight:800}
+
+/* ── SIMULATOR CARD ────────────────────────────────────────── */
+.sim-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:0 8px 40px rgba(0,0,0,.4);
+}
+.sim-head{
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;
+  background:var(--surface2);
+}
+.sim-head-left h2{font-size:16px;font-weight:800;color:var(--text);margin-bottom:3px}
+.sim-head-left p{font-size:12px;color:var(--text2);line-height:1.5}
+.k-control{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:30px;padding:6px 14px;flex-shrink:0;
+}
+.k-control label{font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap}
+.k-control input[type=range]{
+  width:80px;accent-color:var(--c2);cursor:pointer;
+}
+.k-val{
+  font-family:'JetBrains Mono',monospace;
+  font-size:16px;font-weight:600;color:var(--c2);
+  min-width:18px;text-align:center;
+}
+
+/* ── CANVAS ────────────────────────────────────────────────── */
+.canvas-wrap{position:relative;background:var(--bg);border-bottom:1px solid var(--border)}
+canvas{display:block;width:100%;height:340px;cursor:crosshair}
+.canvas-overlay{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+.start-hint{
+  background:rgba(15,14,23,.85);
+  border:1.5px dashed rgba(255,255,255,.15);
+  border-radius:var(--radius);padding:20px 28px;
+  text-align:center;
+}
+.start-hint .sh-icon{font-size:32px;margin-bottom:8px}
+.start-hint p{font-size:14px;font-weight:700;color:var(--text2)}
+
+/* ── STATUS BAR ────────────────────────────────────────────── */
+.status-bar{
+  padding:10px 20px;
+  font-size:13px;font-weight:600;color:var(--text2);
+  background:var(--bg);border-bottom:1px solid var(--border);
+  min-height:40px;display:flex;align-items:center;gap:8px;
+  line-height:1.4;
+}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+  background:var(--text3);transition:background .3s;
+}
+.status-dot.active{background:#4ECDC4;box-shadow:0 0 6px #4ECDC4}
+.status-dot.done{background:#FFE66D;box-shadow:0 0 6px #FFE66D}
+
+/* ── CONTROLS ──────────────────────────────────────────────── */
+.controls{
+  padding:14px 20px;background:var(--surface2);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.btn{
+  font-family:'Nunito',sans-serif;
+  font-size:13px;font-weight:800;
+  padding:9px 18px;border-radius:30px;
+  border:none;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;
+  transition:all .15s;
+  letter-spacing:.02em;
+}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important}
+.btn-scatter{background:var(--c1);color:#fff}
+.btn-scatter:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(255,107,107,.4)}
+.btn-step{background:var(--c2);color:#0F0E17}
+.btn-step:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(78,205,196,.4)}
+.btn-auto{background:var(--c4);color:#fff}
+.btn-auto:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(162,155,254,.4)}
+.btn-reset{background:var(--surface);color:var(--text2);border:1px solid var(--border)}
+.btn-reset:not(:disabled):hover{background:var(--surface2);color:var(--text)}
+.iter-badge{
+  margin-left:auto;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;font-weight:600;color:var(--text3);
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:30px;padding:4px 12px;
+}
+
+/* ── LEGEND ────────────────────────────────────────────────── */
+.legend{
+  padding:12px 20px;
+  display:flex;flex-wrap:wrap;gap:10px;
+  border-top:1px solid var(--border);
+  background:var(--surface);min-height:46px;
+}
+.leg-item{
+  display:flex;align-items:center;gap:7px;
+  font-size:12px;font-weight:700;color:var(--text2);
+}
+.leg-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.leg-center{
+  width:16px;height:16px;border-radius:50%;flex-shrink:0;
+  border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:900;color:#fff;
+  font-family:'JetBrains Mono',monospace;
+}
+
+/* ── THINK SECTION ─────────────────────────────────────────── */
+.think-section{margin-top:24px}
+.think-section h3{
+  font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text3);margin-bottom:12px;
+}
+.questions{display:flex;flex-direction:column;gap:10px}
+.q-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;
+  display:flex;gap:12px;
+  border-left:3px solid var(--q-col);
+}
+.q-num{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--q-col);
+  font-size:13px;font-weight:900;color:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;margin-top:1px;
+}
+.q-body{flex:1}
+.q-text{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;line-height:1.55}
+.q-text strong{color:var(--q-col)}
+.q-ans{
+  width:100%;padding:8px 12px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text);font-family:'Nunito',sans-serif;font-size:13px;
+  resize:vertical;min-height:52px;outline:none;
+  transition:border-color .15s;
+}
+.q-ans:focus{border-color:var(--q-col)}
+.q-ans::placeholder{color:var(--text3)}
+
+/* ── FOOTER ────────────────────────────────────────────────── */
+.site-footer{
+  text-align:center;padding:28px 16px 16px;
+  font-size:12px;font-weight:600;color:var(--text3);
+  border-top:1px solid var(--border);margin-top:32px;
+}
+.site-footer span{color:var(--c2)}
+
+@media(max-width:560px){
+  .sim-head{flex-direction:column}
+  .k-control{align-self:flex-start}
+  .controls{gap:8px}
+  .btn{padding:8px 14px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-blobs">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+</div>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="school-tag">&#x1F3EB; Sharjah Indian School, Juwaiza &nbsp;&#x2756;&nbsp; Dept. of Computer Science</div>
+    <h1>Clustering in AI</h1>
+    <p class="tagline">Watch the AI find hidden groups in real UAE data — no labels, no hints, just patterns!</p>
+    <div class="vision-strip">
+      <span class="vpill red">Educate</span>
+      <span class="vpill teal">Enlighten</span>
+      <span class="vpill yellow">Empower</span>
+    </div>
+  </header>
+
+  <!-- CONCEPT CARDS -->
+  <div class="concepts">
+    <div class="concept-card" style="--accent-col:#FF6B6B">
+      <div class="cc-icon">&#x1F50D;</div>
+      <div class="cc-title" style="color:#FF6B6B">What is clustering?</div>
+      <p>Grouping similar data points together — like sorting fruit by colour without being told what the groups are.</p>
+    </div>
+    <div class="concept-card" style="--accent-col:#4ECDC4">
+      <div class="cc-icon">&#x1F522;</div>
+      <div class="cc-title" style="color:#4ECDC4">What is K?</div>
+      <p>K = the number of groups you want. You choose K before the algorithm starts. Try K=2, 3, and 4!</p>
+    </div>
+    <div class="concept-card" style="--accent-col:#FFE66D">
+      <div class="cc-icon">&#x1F916;</div>
+      <div class="cc-title" style="color:#c8a800">How does it work?</div>
+      <p>Drop K centres &rarr; assign every dot to its nearest centre &rarr; move each centre to the middle &rarr; repeat!</p>
+    </div>
+    <div class="concept-card" style="--accent-col:#A29BFE">
+      <div class="cc-icon">&#x1F9E0;</div>
+      <div class="cc-title" style="color:#A29BFE">Unsupervised?</div>
+      <p>Yes — no labels needed! The AI finds patterns on its own, just by measuring how close the points are.</p>
+    </div>
+  </div>
+
+  <!-- SCENE TABS -->
+  <div class="scene-tabs" id="sceneTabs"></div>
+
+  <!-- SIMULATOR -->
+  <div class="sim-card">
+    <div class="sim-head">
+      <div class="sim-head-left">
+        <h2 id="simTitle">Dubai Mall &#x2014; customer segments</h2>
+        <p id="simSub">Age vs Monthly Spend (AED). The mall uses clustering to target promotions at different shopper types.</p>
+      </div>
+      <div class="k-control">
+        <label for="kSlider">K groups:</label>
+        <input type="range" id="kSlider" min="2" max="5" step="1" value="3">
+        <span class="k-val" id="kVal">3</span>
+      </div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="simCanvas" role="img" aria-label="K-Means clustering simulation showing data points being grouped into coloured clusters."></canvas>
+      <div class="canvas-overlay" id="startOverlay">
+        <div class="start-hint">
+          <div class="sh-icon">&#x1F3AF;</div>
+          <p>Press <strong style="color:#FF6B6B">New Data</strong> to begin!</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Choose a scene above, then press &ldquo;New Data&rdquo; to scatter data points.</span>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-scatter" id="btnScatter">&#x21BB; New data</button>
+      <button class="btn btn-step" id="btnStep" disabled>&#x25B6; Step</button>
+      <button class="btn btn-auto" id="btnAuto" disabled>&#x26A1; Run all</button>
+      <button class="btn btn-reset" id="btnReset" disabled>&#x2715; Reset</button>
+      <span class="iter-badge" id="iterBadge" style="display:none">Iteration 0</span>
+    </div>
+
+    <div class="legend" id="legend">
+      <span style="font-size:12px;font-weight:600;color:var(--text3)">Legend will appear after you start clustering.</span>
+    </div>
+  </div>
+
+  <!-- THINK QUESTIONS -->
+  <div class="think-section">
+    <h3>&#x1F4AC; Think &amp; answer</h3>
+    <div class="questions">
+      <div class="q-card" style="--q-col:#FF6B6B">
+        <div class="q-num" style="background:#FF6B6B">1</div>
+        <div class="q-body">
+          <div class="q-text">What happens to the coloured groups when you change K from 3 to 2? Try it and describe what you see.</div>
+          <textarea class="q-ans" placeholder="Type your answer here..."></textarea>
+        </div>
+      </div>
+      <div class="q-card" style="--q-col:#4ECDC4">
+        <div class="q-num" style="background:#4ECDC4;color:#0F0E17">2</div>
+        <div class="q-body">
+          <div class="q-text">In the <strong>Dubai Mall</strong> scene, what would you name each of the 3 customer groups based on their position on the chart?</div>
+          <textarea class="q-ans" placeholder="Group 1: ... | Group 2: ... | Group 3: ..."></textarea>
+        </div>
+      </div>
+      <div class="q-card" style="--q-col:#A29BFE">
+        <div class="q-num" style="background:#A29BFE;color:#0F0E17">3</div>
+        <div class="q-body">
+          <div class="q-text">Watch a few &ldquo;Step&rdquo; presses carefully. What do the <strong>big numbered circles</strong> represent — and why do they move?</div>
+          <textarea class="q-ans" placeholder="Type your answer here..."></textarea>
+        </div>
+      </div>
+      <div class="q-card" style="--q-col:#FFE66D">
+        <div class="q-num" style="background:#FFE66D;color:#0F0E17">4</div>
+        <div class="q-body">
+          <div class="q-text">Pick any one scene. What real UAE business could use this clustering — and what <strong>decision</strong> would they make based on the groups?</div>
+          <textarea class="q-ans" placeholder="Scene: ... | Business: ... | Decision: ..."></textarea>
+        </div>
+      </div>
+      <div class="q-card" style="--q-col:#FD79A8">
+        <div class="q-num" style="background:#FD79A8">5</div>
+        <div class="q-body">
+          <div class="q-text">&#x1F525; <strong>HOT question:</strong> You are a data scientist at Emirates NBD. You run clustering with K=4 but one group has only 2 customers and another has 50,000. What does this tell you? Is K=4 the right choice? What would you do next?</div>
+          <textarea class="q-ans" style="min-height:72px" placeholder="Type your answer here..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  Sharjah Indian School, Juwaiza &nbsp;&#x2756;&nbsp; Department of Computer Science &nbsp;&#x2756;&nbsp;
+  <span>Work Education &mdash; Grade VII &nbsp;&middot;&nbsp; Clustering in AI</span>
+  &nbsp;&#x2756;&nbsp; Teacher: Bindhuja Bose B
+</footer>
+
+<script>
+const SCENES=[
+  {id:"mall",icon:"&#x1F6CD;",label:"Dubai Mall shoppers",
+   title:"Dubai Mall &#x2014; customer segments",
+   sub:"Age vs Monthly Spend (AED). The mall uses clustering to target promotions at different shopper types.",
+   xLabel:"Age (years \u2192)",yLabel:"Monthly spend (AED \u2191)",
+   color:"#FF6B6B",
+   clusters:[
+     {cx:.18,cy:.75,spread:.085,n:18,name:"Young bargain hunters"},
+     {cx:.50,cy:.42,spread:.095,n:20,name:"Mid-age regulars"},
+     {cx:.78,cy:.18,spread:.075,n:16,name:"Premium spenders"}
+   ]},
+  {id:"careem",icon:"&#x1F696;",label:"Careem hotspots",
+   title:"Careem Dubai &#x2014; pickup hotspots",
+   sub:"GPS coordinates of ride requests. Careem clusters hotspots to position drivers where demand is highest.",
+   xLabel:"Longitude (east \u2192)",yLabel:"Latitude (north \u2191)",
+   color:"#4ECDC4",
+   clusters:[
+     {cx:.15,cy:.20,spread:.08,n:16,name:"Marina / JBR"},
+     {cx:.45,cy:.55,spread:.10,n:22,name:"Downtown / Business Bay"},
+     {cx:.75,cy:.78,spread:.085,n:18,name:"Deira / Airport"}
+   ]},
+  {id:"school",icon:"&#x1F4DA;",label:"Student performance",
+   title:"UAE school &#x2014; student performance groups",
+   sub:"Study hours vs exam score. Schools cluster students to plan targeted support and enrichment.",
+   xLabel:"Study hours / week \u2192",yLabel:"Exam score (%) \u2191",
+   color:"#A29BFE",
+   clusters:[
+     {cx:.15,cy:.18,spread:.08,n:16,name:"Needs support"},
+     {cx:.48,cy:.50,spread:.10,n:22,name:"On track"},
+     {cx:.80,cy:.82,spread:.075,n:16,name:"High achievers"}
+   ]},
+  {id:"health",icon:"&#x1FA7A;",label:"Patient symptoms",
+   title:"UAE Ministry of Health &#x2014; patient symptom clusters",
+   sub:"Temperature vs days of illness. Clustering groups patients with similar symptoms to detect outbreak patterns.",
+   xLabel:"Body temperature (\u00b0C) \u2192",yLabel:"Days of symptoms \u2191",
+   color:"#FD79A8",
+   clusters:[
+     {cx:.20,cy:.22,spread:.085,n:18,name:"Mild / short illness"},
+     {cx:.52,cy:.50,spread:.095,n:20,name:"Moderate fever"},
+     {cx:.80,cy:.78,spread:.08,n:15,name:"High fever / prolonged"}
+   ]}
+];
+
+const CLUSTER_COLORS=["#FF6B6B","#4ECDC4","#FFE66D","#A29BFE","#FD79A8"];
+const CENTER_FILL   =["#C0392B","#0F6E56","#c8a800","#534AB7","#993556"];
+
+let scene=SCENES[0],K=3,points=[],centers=[],assignments=[],
+    iteration=0,phase="empty",stepPhase="assign",autoTimer=null;
+
+const canvas=document.getElementById("simCanvas");
+const ctx=canvas.getContext("2d");
+const kSlider=document.getElementById("kSlider");
+const kValEl=document.getElementById("kVal");
+const btnScatter=document.getElementById("btnScatter");
+const btnStep=document.getElementById("btnStep");
+const btnAuto=document.getElementById("btnAuto");
+const btnReset=document.getElementById("btnReset");
+const statusText=document.getElementById("statusText");
+const statusDot=document.getElementById("statusDot");
+const iterBadge=document.getElementById("iterBadge");
+const legend=document.getElementById("legend");
+const simTitle=document.getElementById("simTitle");
+const simSub=document.getElementById("simSub");
+const startOverlay=document.getElementById("startOverlay");
+
+function W(){return canvas.clientWidth}
+function H(){return canvas.clientHeight}
+const PAD={l:52,r:20,t:16,b:44};
+
+function toPixel(nx,ny){
+  return[PAD.l+nx*(W()-PAD.l-PAD.r),(H()-PAD.b)-ny*(H()-PAD.t-PAD.b)];
+}
+
+function dist(a,b){return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2)}
+
+function randNorm(m,s){
+  let u=0,v=0;
+  while(!u)u=Math.random();
+  while(!v)v=Math.random();
+  return m+s*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
+
+function resizeCanvas(){
+  canvas.width=canvas.clientWidth;
+  canvas.height=canvas.clientHeight;
+  draw();
+}
+
+function scatterPoints(){
+  points=[];
+  scene.clusters.forEach(cl=>{
+    for(let i=0;i<cl.n;i++){
+      points.push({
+        x:clamp(randNorm(cl.cx,cl.spread),.04,.96),
+        y:clamp(randNorm(cl.cy,cl.spread),.04,.96)
+      });
+    }
+  });
+  assignments=new Array(points.length).fill(-1);
+  centers=[];iteration=0;phase="scattered";
+}
+
+function placeCenters(){
+  centers=[];
+  const used=new Set();
+  while(centers.length<K){
+    const i=Math.floor(Math.random()*points.length);
+    if(!used.has(i)){used.add(i);centers.push({x:points[i].x,y:points[i].y})}
+  }
+}
+
+function assignStep(){
+  let changed=false;
+  assignments=points.map((p,i)=>{
+    let best=0,bd=Infinity;
+    centers.forEach((c,ci)=>{const d=dist(p,c);if(d<bd){bd=d;best=ci}});
+    if(best!==assignments[i])changed=true;
+    return best;
+  });
+  return changed;
+}
+
+function moveStep(){
+  centers=centers.map((_,ci)=>{
+    const g=points.filter((_,i)=>assignments[i]===ci);
+    if(!g.length)return centers[ci];
+    return{x:g.reduce((s,p)=>s+p.x,0)/g.length,y:g.reduce((s,p)=>s+p.y,0)/g.length};
+  });
+}
+
+function drawGrid(){
+  const gridCol="rgba(255,255,255,0.04)";
+  const axisCol="rgba(255,255,255,0.15)";
+  const lblCol ="rgba(255,255,255,0.35)";
+  ctx.font="11px 'Nunito',sans-serif";
+  ctx.textBaseline="middle";
+
+  ctx.strokeStyle=gridCol;ctx.lineWidth=0.5;
+  for(let i=1;i<5;i++){
+    const x=PAD.l+(i/5)*(W()-PAD.l-PAD.r);
+    ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,H()-PAD.b);ctx.stroke();
+    const y=PAD.t+(i/5)*(H()-PAD.t-PAD.b);
+    ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W()-PAD.r,y);ctx.stroke();
+  }
+  ctx.strokeStyle=axisCol;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H()-PAD.b);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(PAD.l,H()-PAD.b);ctx.lineTo(W()-PAD.r,H()-PAD.b);ctx.stroke();
+
+  ctx.fillStyle=lblCol;
+  ctx.textAlign="center";
+  ctx.fillText(scene.xLabel,PAD.l+(W()-PAD.l-PAD.r)/2,H()-10);
+  ctx.save();
+  ctx.translate(14,PAD.t+(H()-PAD.t-PAD.b)/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText(scene.yLabel,0,0);
+  ctx.restore();
+}
+
+function drawPoints(){
+  points.forEach((p,i)=>{
+    const[px,py]=toPixel(p.x,p.y);
+    const assigned=assignments[i];
+    const col=assigned>=0?CLUSTER_COLORS[assigned]:"rgba(255,255,255,0.22)";
+    ctx.beginPath();ctx.arc(px,py,5.5,0,Math.PI*2);
+    ctx.fillStyle=col;ctx.globalAlpha=0.88;ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.strokeStyle="rgba(0,0,0,0.35)";ctx.lineWidth=0.8;ctx.stroke();
+  });
+}
+
+function drawCenters(){
+  centers.forEach((c,ci)=>{
+    const[cx,cy]=toPixel(c.x,c.y);
+    const col=CLUSTER_COLORS[ci];
+    const fill=CENTER_FILL[ci];
+
+    ctx.beginPath();ctx.arc(cx,cy,14,0,Math.PI*2);
+    ctx.fillStyle=fill;ctx.fill();
+    ctx.strokeStyle="#fff";ctx.lineWidth=2.5;ctx.stroke();
+
+    ctx.fillStyle="#fff";
+    ctx.font="bold 11px 'JetBrains Mono',monospace";
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(ci+1,cx,cy);
+    ctx.textBaseline="alphabetic";
+
+    ctx.strokeStyle=col+"55";ctx.lineWidth=1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.arc(cx,cy,28,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+  });
+}
+
+function draw(){
+  ctx.clearRect(0,0,W(),H());
+  drawGrid();
+  if(phase!=="empty"){drawPoints()}
+  if(centers.length){drawCenters()}
+}
+
+function updateLegend(){
+  legend.innerHTML="";
+  if(phase==="empty"||phase==="scattered"){
+    legend.innerHTML='<span style="font-size:12px;font-weight:600;color:var(--text3)">Legend will appear after clustering starts.</span>';
+    return;
+  }
+  const names=scene.clusters.map(c=>c.name);
+  for(let i=0;i<K;i++){
+    const d=document.createElement("div");
+    d.className="leg-item";
+    const cLabel=names[i]?` &mdash; ${names[i]}`:"";
+    d.innerHTML=`<span class="leg-dot" style="background:${CLUSTER_COLORS[i]}"></span>
+      <span class="leg-center" style="background:${CENTER_FILL[i]}">${i+1}</span>
+      Group ${i+1}${cLabel}`;
+    legend.appendChild(d);
+  }
+}
+
+function setStatus(msg,state="idle"){
+  statusText.textContent=msg;
+  statusDot.className="status-dot"+(state==="active"?" active":state==="done"?" done":"");
+}
+
+function doStep(){
+  if(phase==="scattered"){
+    placeCenters();phase="running";stepPhase="assign";
+    startOverlay.style.display="none";
+    setStatus(`K=${K} centres placed randomly. Press Step to assign each dot to its nearest centre.`,"active");
+    iterBadge.style.display="";iterBadge.textContent="Iteration 0";
+    btnReset.disabled=false;draw();updateLegend();return;
+  }
+  if(phase==="running"){
+    if(stepPhase==="assign"){
+      const changed=assignStep();
+      iteration++;
+      iterBadge.textContent=`Iteration ${iteration}`;
+      stepPhase="move";
+      if(!changed&&iteration>1){
+        phase="done";
+        setStatus(`Done! Found ${K} stable groups in ${iteration-1} iteration${iteration>2?"s":""}. No dots changed group — clustering complete!`,"done");
+        btnStep.disabled=true;btnAuto.disabled=true;
+      }else{
+        setStatus(`Iteration ${iteration}: each dot assigned to its nearest centre (ringed circle). Press Step to move centres to the middle of their group.`,"active");
+      }
+    }else{
+      moveStep();stepPhase="assign";
+      setStatus(`Iteration ${iteration}: centres moved to the middle of their groups. Press Step to re-assign dots.`,"active");
+    }
+    draw();updateLegend();
+  }
+}
+
+function doAuto(){
+  btnAuto.disabled=true;btnStep.disabled=true;
+  let max=40;
+  autoTimer=setInterval(()=>{
+    if(phase==="done"||max--<=0){clearInterval(autoTimer);return}
+    doStep();
+  },380);
+}
+
+function doScatter(){
+  clearInterval(autoTimer);
+  K=parseInt(kSlider.value);
+  scatterPoints();draw();updateLegend();
+  startOverlay.style.display="none";
+  setStatus(`${points.length} data points scattered. Press Step to place K=${K} random centres and begin clustering.`,"active");
+  btnStep.disabled=false;btnAuto.disabled=false;btnReset.disabled=false;
+  iterBadge.style.display="none";stepPhase="assign";
+}
+
+function doReset(){
+  clearInterval(autoTimer);
+  points=[];centers=[];assignments=[];iteration=0;
+  phase="empty";stepPhase="assign";
+  draw();updateLegend();
+  startOverlay.style.display="flex";
+  setStatus('Press "New Data" to scatter data points and begin.');
+  btnStep.disabled=true;btnAuto.disabled=true;btnReset.disabled=true;
+  iterBadge.style.display="none";
+}
+
+kSlider.addEventListener("input",()=>{K=parseInt(kSlider.value);kValEl.textContent=K});
+btnScatter.addEventListener("click",doScatter);
+btnStep.addEventListener("click",doStep);
+btnAuto.addEventListener("click",doAuto);
+btnReset.addEventListener("click",doReset);
+
+function setScene(idx){
+  scene=SCENES[idx];
+  simTitle.innerHTML=scene.title;
+  simSub.textContent=scene.sub;
+  document.querySelectorAll(".stab").forEach((b,i)=>b.classList.toggle("on",i===idx));
+  if(idx===0) document.querySelectorAll(".stab.on").forEach(b=>{b.style.background="#FF6B6B"});
+  document.querySelectorAll(".stab").forEach((b,i)=>{
+    b.style.background=b.classList.contains("on")?SCENES[i].color:"";
+    b.style.color=b.classList.contains("on")?"#0F0E17":"";
+    b.style.borderColor=b.classList.contains("on")?"transparent":"";
+  });
+  doReset();
+}
+
+const tabsEl=document.getElementById("sceneTabs");
+SCENES.forEach((sc,i)=>{
+  const b=document.createElement("button");
+  b.className="stab"+(i===0?" on":"");
+  b.innerHTML=`<span class="si">${sc.icon}</span>${sc.label}`;
+  if(i===0){b.style.background=sc.color;b.style.color="#0F0E17";b.style.borderColor="transparent"}
+  b.onclick=()=>setScene(i);
+  tabsEl.appendChild(b);
+});
+
+const ro=new ResizeObserver(()=>resizeCanvas());
+ro.observe(canvas);
+resizeCanvas();
+setStatus('Press "New Data" to scatter data points and begin.');
+</script>
+</body>
+</html>
